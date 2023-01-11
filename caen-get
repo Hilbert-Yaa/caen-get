@@ -1,20 +1,31 @@
 #! /usr/bin/env zsh
 
-RPM_TMP_DIR = $HOME/.caen-get
-USER_ROOT = $HOME/.caen-root
-YUMD_LINK = "https://github.com/Hilbert-Yaa/caen-get/releases/download/yum-utils-v4.3.1/yum-utils-4.3.1-1.mga9.noarch.rpm"
+RPM_TMP_DIR=$HOME/.caen-get
+USER_ROOT=$HOME/.caen-root
+YUMD_LINK="https://github.com/Hilbert-Yaa/caen-get/releases/download/yum-utils-v4.3.1/yum-utils-4.3.1-1.mga9.noarch.rpm"
+ZPROFILE=$HOME/.zshrc
+
 # Bootstrap
 cg_bootstrap() {
-    echo "@@Bootstrap caen-get ( > - < )..."
-    mkdir -p $RPM_TMP_DIR
-    mkdir -p $USER_ROOT
-    curl -LJ $YUMD_LINK -o $RPM_TMP_DIR/yumd.rpm
-    cd $USER_ROOT
-    rpm2cpio $RPM_TMP_DIR/yumd.rpm | cpio -id
-    export PATH="$USER_ROOT/usr/sbin:$USER_ROOT/usr/bin:$USER_ROOT/bin:$PATH"
-    export MANPATH="$USER_ROOT/usr/share/man:$MANPATH"
-    L='/lib:/lib64:/usr/lib:/usr/lib64'
-    export LD_LIBRARY_PATH="$USER_ROOT/usr/lib:$USER_ROOT/usr/lib64:$L"
+    if grep -Fq "USER_ROOT" $ZPROFILE
+    then
+        # found trace of a prior bootstrap
+        echo "@@Bootstrap caen-get had been processed on your CAEN before ( > - < )..."
+    else
+        # not bootstraped
+        echo "@@Bootstrap caen-get ( 0 v 0 )..."
+        mkdir -p $RPM_TMP_DIR
+        mkdir -p $USER_ROOT
+        curl -LJ $YUMD_LINK -o $RPM_TMP_DIR/yumd.rpm
+        cd $USER_ROOT
+        rpm2cpio $RPM_TMP_DIR/yumd.rpm | cpio -id
+        echo 'export RPM_TMP_DIR=$HOME/.caen-get' >> $ZPROFILE
+        echo 'export USER_ROOT=$HOME/.caen-root' >> $ZPROFILE
+        echo 'export PATH="$USER_ROOT/usr/sbin:$USER_ROOT/usr/bin:$USER_ROOT/bin:$PATH"' >> $ZPROFILE
+        echo 'export MANPATH="$USER_ROOT/usr/share/man:$MANPATH"' >> $ZPROFILE
+        echo "L='lib:/lib64:/usr/lib:/usr/lib64'" >> $ZPROFILE
+        echo 'export LD_LIBRARY_PATH="$USER_ROOT/usr/lib:$USER_ROOT/usr/lib64:$L"' >> $ZPROFILE
+    fi
 }
 
 # Install
@@ -39,8 +50,7 @@ cg_update() {
     sleep 1
 }
 
-# handle arguments
-echo $1 $2
+# Handle arguments
 while getopts ":bi" opt; do
     case ${opt} in
         b ) cg_bootstrap
